@@ -1,0 +1,170 @@
+name: EventPlanner
+
+entities:
+  User:
+    authenticable: true
+    properties:
+      - name
+      - name: email
+        type: email
+      - name: role
+        type: choice
+        options:
+          values: [organizer, attendee]
+        default: attendee
+    policies:
+      create:
+        - access: admin
+      read:
+        - access: restricted
+          allow: User
+          condition: self
+        - access: admin
+      update:
+        - access: restricted
+          allow: User
+          condition: self
+      delete:
+        - access: admin
+      signup:
+        - access: public
+
+  Event:
+    properties:
+      - name: title
+        type: string
+      - name: description
+        type: richText
+      - name: eventDate
+        type: timestamp
+      - name: location
+        type: location
+    belongsTo:
+      - name: organizer
+        entity: User
+      - name: venue
+        entity: Venue
+    policies:
+      create:
+        - access: restricted
+          allow: User
+      read:
+        - access: public
+      update:
+        - access: restricted
+          allow: User
+          condition: self # self here refers to the event's organizer
+      delete:
+        - access: restricted
+          allow: User
+          condition: self
+
+  Venue:
+    properties:
+      - name
+      - name: address
+        type: text
+      - name: capacity
+        type: number
+      - name: category
+        type: choice
+        options:
+          values: [Conference Center, Hotel Ballroom, Outdoor Park, Stadium, Theater]
+        default: Conference Center
+    policies:
+      create:
+        - access: admin
+      read:
+        - access: public
+      update:
+        - access: admin
+      delete:
+        - access: admin
+
+  TicketTier:
+    properties:
+      - name: tierName
+        type: string
+        default: 'General Admission'
+      - name: price
+        type: money
+        options:
+          currency: 'USD'
+      - name: quantity
+        type: number
+    belongsTo:
+      - { name: event, entity: Event }
+    policies:
+      create:
+        - access: restricted
+          allow: User
+      read:
+        - access: public
+      update:
+        - access: restricted
+          allow: User
+      delete:
+        - access: restricted
+          allow: User
+
+  GalleryImage:
+    properties:
+      - name: caption
+        type: string
+      - name: imageFile
+        type: image
+        options:
+          sizes:
+            thumbnail:
+              width: 200
+              height: 200
+            large:
+              width: 1024
+              height: 768
+    belongsTo:
+      - { name: event, entity: Event }
+    policies:
+      create:
+        - access: restricted
+          allow: User
+      read:
+        - access: public
+      update:
+        - access: restricted
+          allow: User
+      delete:
+        - access: restricted
+          allow: User
+
+  Registration:
+    properties:
+      - name: registrationDate
+        type: timestamp
+        default: now
+    belongsTo:
+      - { name: attendee, entity: User }
+      - { name: event, entity: Event }
+      - { name: ticketTier, entity: TicketTier }
+    policies:
+      create:
+        - access: restricted
+          allow: User
+      read:
+        - access: restricted
+          allow: User
+          condition: self
+      update:
+        - access: forbidden
+      delete:
+        - access: restricted
+          allow: User
+          condition: self
+
+
+# Health check endpoint for connection testing
+endpoints:
+  health:
+    path: /api/health
+    method: GET
+    policies: []
+    handler: healthCheck
